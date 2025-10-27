@@ -1,4 +1,8 @@
-# 偽RAMFILE for MZ-1500
+# 偽 RAMFILE for MZ-1500
+
+# ** WORK IN PROGRESS **
+
+開発中のため未実装・未検証の機能があります。
 
 ![nisesenshi on 6001mk2SR](/pictures/board2.jpg)
 
