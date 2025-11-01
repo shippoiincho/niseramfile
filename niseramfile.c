@@ -54,7 +54,7 @@ uint8_t *romslots=(uint8_t *)(ROMBASE);
 // This is setup to read a block of the flash from the end 
 #define BLOCK_SIZE_BYTES (FLASH_SECTOR_SIZE)
 // for 16M flash
-#define HW_FLASH_STORAGE_BYTES  (7680 * 1024)
+#define HW_FLASH_STORAGE_BYTES  (8192 * 1024)
 #define HW_FLASH_STORAGE_BASE   (1024*1024*16 - HW_FLASH_STORAGE_BYTES) 
 
 // RAM configuration
@@ -62,16 +62,9 @@ uint8_t *romslots=(uint8_t *)(ROMBASE);
 // MZ-1R12: 64KiB
 // EMM:    320KiB
 
-//uint8_t mz1r12[0x10000];
-//uint8_t mz1r18[0x10000];
-uint8_t *mz1r12;
-uint8_t *mz1r18;
-#ifdef USE_EMM
-//uint8_t emm[0x50000];
-uint8_t *emm;
-#else
-uint8_t kanjiram[0x20000];
-#endif
+uint8_t mz1r12[0x10000];
+uint8_t mz1r18[0x10000];
+uint8_t emm[0x50000];
 
 #define MAXROMPAGE 64       // = 128KiB * 64 pages = 8MiB
 
@@ -95,6 +88,13 @@ void __not_in_flash_func(z80reset)(uint gpio,uint32_t event) {
 
     gpio_acknowledge_irq(25,GPIO_IRQ_EDGE_FALL);
 
+    kanjiptr=0;
+    dictptr=0;
+    kanjictl=0;
+    mz1r18ptr=0;
+    mz1r12ptr=0;
+    emmptr=0;
+
     return;
 }
 
@@ -113,7 +113,7 @@ static inline void io_write(uint16_t address, uint8_t data)
 
         case 0xb9:  // Kanji PTR
             dictptr=data+(address&0xff00);
-            kanjiptr<<=5;
+            kanjiptr=dictptr<<5;
 
             return;
 
@@ -139,7 +139,8 @@ static inline void io_write(uint16_t address, uint8_t data)
             return;
 
         case 0xfa:
-            mz1r12[mz1r12ptr++]=data;
+            mz1r12[mz1r12ptr&0xffff]=data;
+            mz1r12ptr++;
             return;
 
         //  MZ-1R12 control 
@@ -150,7 +151,6 @@ static inline void io_write(uint16_t address, uint8_t data)
 #endif
 
         // EMM
-#ifdef USE_EMM
         case 0:
             emmptr=(emmptr&0xfff00)+(data);
             return;
@@ -164,9 +164,9 @@ static inline void io_write(uint16_t address, uint8_t data)
             return; 
 
         case 3:
-            emm[emmptr++]=data;
+            emm[emmptr&0x4ffff]=data;
+            emmptr++;
             return;
-#endif
 
     }
  
@@ -182,21 +182,10 @@ void init_emulator(void) {
     mz1r12ptr=0;
     mz1r18ptr=0;
 
-    mz1r12=malloc(0x10000);
-    mz1r18=malloc(0x10000);
-
-#ifdef USE_EMM
-    emm=malloc(0x50000);
-#endif
-
-    // Load 1st ROM data to MZ-1R12
+    // Load DUMMY data to MZ-1R12
 
 //    memcpy(mz1r12,romslots,0x10000);
     memset(mz1r12,0xaa,0x10000);
-
-#ifndef USE_EMM
-    memcpy(kanjiram,kanjirom,0x20000);
-#endif
 
 }
 
@@ -235,7 +224,6 @@ void __not_in_flash_func(main_core1)(void) {
                 // MZ-1R23 & 1R24
 
                 case 0xb9:
-#ifdef USE_EMM
                     // ENABLE WAIT
                     gpio_set_dir(32,true);
                     gpio_put(32,false);
@@ -258,17 +246,6 @@ void __not_in_flash_func(main_core1)(void) {
                         response=1;
                         break;
                     }
-#else 
-                    if(kanjictl&0x80) {
-                        // KANJI
-                        data=kanjiram[kanjiptr++];
-                        if(kanjictl&0x40) { // Bit reverse
-                            data=bitreverse[data];           
-                        }
-                        response=1;
-                        break;
-                    } 
-#endif
 
                 // MZ-1R18
 
@@ -295,14 +272,16 @@ void __not_in_flash_func(main_core1)(void) {
                     break;
 
                 case 0xf9:
-                    data=mz1r12[mz1r12ptr++];
+                    data=mz1r12[mz1r12ptr&0xffff];
+                    mz1r12ptr++;
                     response=1;
                     break;
 
                 // EMM
 #ifdef USE_EMM
                 case 0x3:
-                    data=emm[emmptr++];
+                    data=emm[emmptr&0x4ffff];
+                    emmptr++;
                     response=1;
                     break;
 #endif
