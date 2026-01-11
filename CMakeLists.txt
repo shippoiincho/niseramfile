@@ -37,7 +37,7 @@ pico_sdk_init()
 
 add_executable(niseramfile niseramfile.c )
 
-target_sources(niseramfile PRIVATE niseramfile.c)
+target_sources(niseramfile PRIVATE niseramfile.c vga16_graphics.c)
 
 pico_set_program_name(niseramfile "niseramfile")
 pico_set_program_version(niseramfile "0.1")
@@ -46,9 +46,13 @@ pico_set_program_version(niseramfile "0.1")
 pico_enable_stdio_uart(niseramfile 1)
 pico_enable_stdio_usb(niseramfile 0)
 
+pico_generate_pio_header(niseramfile ${CMAKE_CURRENT_LIST_DIR}/hsync.pio)
+pico_generate_pio_header(niseramfile ${CMAKE_CURRENT_LIST_DIR}/vsync.pio)
+pico_generate_pio_header(niseramfile ${CMAKE_CURRENT_LIST_DIR}/rgb.pio)
+
 # Add the standard library to the build
 target_link_libraries(niseramfile  
-        hardware_flash hardware_vreg pico_multicore pico_stdlib)
+        hardware_flash hardware_vreg hardware_pio hardware_dma pico_multicore pico_stdlib)
 
 # Add the standard include files to the build
 target_include_directories(niseramfile PRIVATE
