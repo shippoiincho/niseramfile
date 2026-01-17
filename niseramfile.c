@@ -367,23 +367,23 @@ static inline void io_write(uint16_t address, uint8_t data)
 
         // EMM
         case 0:
-            emmptr=(emmptr&0xfff00)+(data);
+            emmptr=(emmptr&0x7ff00)+(data);
             return;
 
         case 1:
-            emmptr=(emmptr&0xf00ff)+(data<<8);
+            emmptr=(emmptr&0x700ff)+(data<<8);
             return;           
 
         case 2:
-            emmptr=(emmptr&0xffff)+(data<<16);
+//            emmptr=(emmptr&0xffff)+(data<<16);
+            emmptr=(emmptr&0xffff)+((data&7)<<16);
             return; 
 
         case 3:
-            emm[emmptr&0x4ffff]=data;
-            emmptr++;
             if(emmptr>0x4ffff) {
-                emmptr=0;
+                emmptr-=0x50000;
             }
+            emm[emmptr++]=data;
             return;
 
         // BANK control
@@ -620,11 +620,10 @@ void __not_in_flash_func(main_core1)(void) {
 
                 // EMM
                 case 0x3:
-                    data=emm[emmptr&0x4ffff];
-                    emmptr++;
                     if(emmptr>0x4ffff) {
-                        emmptr=0;
+                        emmptr-=0x50000;
                     }
+                    data=emm[emmptr++];
                     response=1;
                     break;
 
