@@ -542,7 +542,8 @@ void __not_in_flash_func(main_core1)(void) {
 
     gpio_init_mask(0xffffffff);
     gpio_set_dir_all_bits(0x00000000);  // All pins are INPUT
-//    gpio_set_dir(32,true);
+    gpio_init(32);
+    //    gpio_set_dir(32,true);
 
     while(1) {
 
