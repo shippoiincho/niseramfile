@@ -161,6 +161,12 @@ picotool.exe load -v -x font.rom  -t bin -o 0x1001f000
 ```
 
 ---
+## 制限事項
+
+- SRAM および EMM データを Flash に書き込む際には VGA 出力が乱れます
+- **Flash 書き込み時に漢字 ROM や辞書 ROM にアクセスすると、ボードの機能が停止します。絶対に行わないでください。**
+
+---
 ## 使用ライブラリなど
 
 - [VGA ライブラリ(一部改変)](https://github.com/vha3/Hunter-Adams-RP2040-Demos/tree/master/VGA_Graphics)
